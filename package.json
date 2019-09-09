@@ -1,0 +1,11 @@
+{
+  "name": "code-snippet",
+  "version": "0.0.1",
+  "description": "",
+  "main": "code-snippet.js",
+  "scripts": {
+    "tsc": "tsc"
+  },
+  "author": "Will Smart",
+  "license": "MIT"
+}
