@@ -1,15 +1,33 @@
 import permissableGlobals from "./permissable-globals";
-import { HandlePromise } from "./interfaces/promise-handler";
+import {
+  ValueSourceRegistry_publicInterface,
+  SourceGenerator,
+  ValueSource_ownerInterface,
+  ValueSource_sinkInterface,
+  ValueSource_stateForOwner,
+  ValueSink_publicInterface,
+} from "./interfaces/sinks-and-sources";
+import { anyValue } from "./interfaces/any";
 
-export class CodeSnippet {
+export class CodeSnippetSourceGenerator implements SourceGenerator<CodeSnippet> {}
+export class CodeSnippet implements ValueSource_abstract<CodeSnippet> {
+  addSink(sink: ValueSink_publicInterface<CodeSnippet>): ValueSink_publicInterface<CodeSnippet> {
+    throw new Error("Method not implemented.");
+  }
+  removeSink(sink: ValueSink_publicInterface<CodeSnippet>): ValueSource_stateForOwner {
+    throw new Error("Method not implemented.");
+  }
+  cleanup(): Promise<void> {
+    throw new Error("Method not implemented.");
+  }
+  sinkInterface(): ValueSource_sinkInterface<CodeSnippet> {}
+
   codeString: string;
-  handlePromise: HandlePromise;
   maskGlobals: string[];
   func: Function;
 
-  constructor(codeString: string, handlePromise: HandlePromise) {
+  constructor(codeString: string) {
     this.codeString = codeString;
-    this.handlePromise = handlePromise;
     this.maskGlobals = Array.from(CodeSnippet.potentialGlobalsFromCodeString(codeString));
     this.func = new Function(...this.maskGlobals, this.codeString);
   }

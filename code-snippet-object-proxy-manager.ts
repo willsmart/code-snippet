@@ -1,5 +1,5 @@
-import { anyObject, anyValue } from "./any";
-import { CodeSnippetCallInstance } from "./interfaces";
+import { anyObject, anyValue } from "./interfaces/any";
+import { CodeSnippetCallInstance } from "./interfaces/code-snippet";
 
 type primitive = string | number | boolean | symbol | null | Function | undefined;
 

@@ -1,5 +1,5 @@
-import { anyValue } from "./any";
-import { CodeSnippetCallInstance } from "./interfaces";
+import { anyValue } from "./interfaces/any";
+import { CodeSnippetCallInstance } from "./interfaces/code-snippet";
 import isPromise from "./is-promise";
 
 export default function(
