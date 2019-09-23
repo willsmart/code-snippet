@@ -1,4 +1,4 @@
-import permissableGlobals from "./permissable-globals";
+import permissableGlobals from './permissable-globals';
 import {
   ValueSourceRegistry_publicInterface,
   SourceGenerator,
@@ -6,30 +6,22 @@ import {
   ValueSource_sinkInterface,
   ValueSource_stateForOwner,
   ValueSink_publicInterface,
-} from "./interfaces/sinks-and-sources";
-import { anyValue } from "./interfaces/any";
+} from './interfaces/sinks-and-sources';
+import { anyValue } from './interfaces/any';
+import { Caster } from './interfaces/misc';
 
-export class CodeSnippetSourceGenerator implements SourceGenerator<CodeSnippet> {}
-export class CodeSnippet implements ValueSource_abstract<CodeSnippet> {
-  addSink(sink: ValueSink_publicInterface<CodeSnippet>): ValueSink_publicInterface<CodeSnippet> {
-    throw new Error("Method not implemented.");
-  }
-  removeSink(sink: ValueSink_publicInterface<CodeSnippet>): ValueSource_stateForOwner {
-    throw new Error("Method not implemented.");
-  }
-  cleanup(): Promise<void> {
-    throw new Error("Method not implemented.");
-  }
-  sinkInterface(): ValueSource_sinkInterface<CodeSnippet> {}
-
+export class CodeSnippet<T> {
   codeString: string;
   maskGlobals: string[];
-  func: Function;
+  func: (...args: anyValue[]) => T;
 
-  constructor(codeString: string) {
+  constructor(codeString: string, caster: Caster<T>) {
     this.codeString = codeString;
     this.maskGlobals = Array.from(CodeSnippet.potentialGlobalsFromCodeString(codeString));
-    this.func = new Function(...this.maskGlobals, this.codeString);
+    const func = new Function(...this.maskGlobals, this.codeString);
+    this.func = function() {
+      return caster(func.call(null, arguments));
+    };
   }
 
   static potentialGlobalsFromCodeString(codeString: string) {

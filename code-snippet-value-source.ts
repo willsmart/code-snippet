@@ -1,15 +1,8 @@
-import { CodeSnippet } from "./code-snippet";
-import { ValueSource_abstract, ValueSourceInterfacePassback } from "./interfaces/value-source-abstract";
+import { CodeSnippet } from './code-snippet';
+import { ValueSourceInterfacePassback } from './interfaces/abstract-value-source';
+import { AbstractConstantValueSource } from './interfaces/abstract-constant-value-source';
 
-export class CodeSnippetValueSource extends ValueSource_abstract<CodeSnippet> {
-  protected valueFromSubclass(): Promise<CodeSnippet> {
-    return Promise.resolve(this.cachedValue);
-  }
-
-  setValueInSubclass(): undefined {
-    return undefined;
-  }
-
+export class CodeSnippetValueSource extends AbstractConstantValueSource<CodeSnippet, string> {
   constructor({
     interfacePassback,
     codeString,
@@ -17,6 +10,6 @@ export class CodeSnippetValueSource extends ValueSource_abstract<CodeSnippet> {
     interfacePassback: ValueSourceInterfacePassback<CodeSnippet>;
     codeString: string;
   }) {
-    super({ interfacePassback, value: new CodeSnippet(codeString), valid: true });
+    super({ interfacePassback, rawValue: codeString, valueTransform: s => new CodeSnippet(s) });
   }
 }

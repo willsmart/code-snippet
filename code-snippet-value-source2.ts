@@ -1,26 +1,39 @@
-import permissableGlobals from "./permissable-globals";
+import permissableGlobals from './permissable-globals';
 import {
   CodeSnippetArg,
   CodeSnippetCallInstance,
   CodeSnippetCallResult,
   CodeSnippetSideEffect,
-} from "./interfaces/code-snippet";
-import { CodeSnippetObjectProxyManager } from "./code-snippet-object-proxy-manager";
-import unasyncValue from "./unasync-value";
-import { anyObject, anyValue } from "./interfaces/any";
-import { CodeSnippet } from "./code-snippet";
-import { SourceName } from "./interfaces/sinks-and-sources";
+  CodeSnippetCallSuccess,
+} from './interfaces/code-snippet';
+import { CodeSnippetObjectProxyManager } from './code-snippet-object-proxy-manager';
+import unasyncValue from './unasync-value';
+import { anyObject, anyValue } from './interfaces/any';
+import { CodeSnippet } from './code-snippet';
+import { SourceName } from './interfaces/sinks-and-sources';
+import { HandlePromise } from './interfaces/promise-handler';
+import { noboSingleton } from './interfaces/nobo-singleton';
 
-export class CodeSnippetValueSource {
-  codeSnippet: CodeSnippet;
-  localArgs: { [key: string]: SourceName<anyValue> };
+export class CodeSnippetCaller<T> {
+  codeSnippet: CodeSnippet<T>;
+  localArgs: { [key: string]: CodeSnippetArg };
+  handlePromise: HandlePromise;
 
-  constructor(codeSnippet: CodeSnippet, localArgs: { [key: string]: SourceName<anyValue> } = {}) {
+  constructor({
+    codeSnippet,
+    localArgs = {},
+    handlePromise,
+  }: {
+    codeSnippet: CodeSnippet<T>;
+    localArgs: { [key: string]: CodeSnippetArg };
+    handlePromise?: HandlePromise;
+  }) {
     this.codeSnippet = codeSnippet;
     this.localArgs = localArgs;
+    this.handlePromise = handlePromise || noboSingleton.handlePromise;
   }
 
-  call(localArgs: { [key: string]: CodeSnippetArg } = {}, localValues: anyObject = {}): CodeSnippetCallResult {
+  call(localOverrides: anyObject = {}): CodeSnippetCallResult<T> {
     let needsRetry;
     const retryAfterPromises: { [name: string]: Promise<void> } = {},
       sideEffectIndexesByName: { [name: string]: number } = {},
@@ -40,6 +53,7 @@ export class CodeSnippetValueSource {
       };
     const localProxyMgrs: { [key: string]: CodeSnippetObjectProxyManager } = {};
     const locals: anyObject = {};
+    const { localArgs, codeSnippet, handlePromise } = this;
 
     for (const key of Object.keys(localArgs)) {
       let { value: localValue, valueGetter, defaultValueForKeyPath } = localArgs[key];
@@ -49,12 +63,12 @@ export class CodeSnippetValueSource {
         callInstance,
         defaultValueForKeyPath,
         key,
-        key in localValues ? localValues[key] : localValue,
+        key in localOverrides ? localOverrides[key] : localValue,
         value => {
-          localValues[key] = value;
+          localOverrides[key] = value;
         }
       );
-      if (!localValue || typeof localValue !== "object") continue;
+      if (!localValue || typeof localValue !== 'object') continue;
 
       let haveRegisteredSideEffect = false;
 
@@ -76,27 +90,28 @@ export class CodeSnippetValueSource {
         callInstance
       )).proxy;
     }
-    const result = this.func(this.maskGlobals.map(key => key in locals && locals[key]));
+    const result = codeSnippet.func(codeSnippet.maskGlobals.map(key => key in locals && locals[key]));
 
     if (!needsRetry) {
-      return { result, sideEffects };
+      return { promise: Promise.resolve({ result, sideEffects }) };
     }
 
-    this.handlePromise(Promise.all(Object.values(retryAfterPromises)).then(() => this.call(localArgs)));
-    return { retryingAfterPromises: Object.keys(retryAfterPromises) };
+    return {
+      retryingAfterPromises: Object.keys(retryAfterPromises),
+      promise: new Promise(async resolve => {
+        let result: CodeSnippetCallSuccess<T>;
+        await handlePromise(
+          Promise.all(Object.values(retryAfterPromises)).then(async () => {
+            result = await this.call(localArgs);
+            return undefined;
+          })
+        );
+        resolve(result);
+      }),
+    };
   }
 
   async commit({ sideEffects }: { sideEffects: CodeSnippetSideEffect[] }): Promise<void> {
     await this.handlePromise(Promise.all(sideEffects.map(sideEffect => sideEffect.run())));
-  }
-
-  static potentialGlobalsFromCodeString(codeString: string) {
-    const words = new Set<string>(),
-      regex = /(?<!\.)\b\w+\b/g; // TODO, this regex is pretty damn basic. It could be made much more refined
-    for (let match: RegExpExecArray | null; (match = regex.exec(codeString)); ) {
-      const [word] = match;
-      if (!permissableGlobals.has(word)) words.add(word);
-    }
-    return words;
   }
 }
