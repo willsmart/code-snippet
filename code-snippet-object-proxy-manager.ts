@@ -154,7 +154,7 @@ export class CodeSnippetObjectProxyManager {
   constructor(
     keyPath: string,
     source: anyObject,
-    unasyncValue: (keyPath: string, value: anyValue, then: (value: anyValue) => void) => anyValue,
+    unasyncValue: (keyPath: string, value: anyValue | Promise<anyValue>, then: (value: anyValue) => void) => anyValue,
     wasModified: () => void,
     callInstance: CodeSnippetCallInstance
   ) {

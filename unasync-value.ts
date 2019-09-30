@@ -1,16 +1,16 @@
 import { anyValue } from "./interfaces/any";
 import { CodeSnippetCallInstance } from "./interfaces/code-snippet";
-import isPromise from "./is-promise";
+import { noboSingleton } from "./interfaces/nobo-singleton";
 
-export default function(
+export default function<T>(
   callInstance: CodeSnippetCallInstance,
-  defaultValueForKeyPath: (keyPath: string) => anyValue,
+  defaultValueForKeyPath: (keyPath: string) => T,
   keyPath: string,
-  value: anyValue,
-  then: (value: anyValue) => void
-): anyValue {
-  if (!isPromise(value)) return value;
-  const promise = <Promise<anyValue>>value;
+  value: T | Promise<T>,
+  then: (value: T) => void
+): T {
+  if (!noboSingleton.isPromise(<anyValue>value)) return <T>value;
+  const promise = <Promise<T>>value;
   callInstance.retryAfterPromise(promise.then(then), keyPath);
   return defaultValueForKeyPath(keyPath);
 }
