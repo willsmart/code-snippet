@@ -1,6 +1,6 @@
-import { CodeSnippetSingleton_publicInterface } from "./interfaces/code-snippet-singleton";
-import { SourceRegistry_sinkInterface, SourceName, ValueSource_ownerInterface } from "./interfaces/sinks-and-sources";
-import { noboSingleton } from "./interfaces/nobo-singleton";
+import { CodeSnippetSingleton_publicInterface } from "../interface/code-snippet-singleton";
+import { SourceRegistry_sinkInterface, SourceName, ValueSource_ownerInterface } from "../interface/sinks-and-sources";
+import { noboSingleton } from "../interface/nobo-singleton";
 import { CodeSnippet } from "./code-snippet";
 
 class CodeSnippetSingleton implements CodeSnippetSingleton_publicInterface {

@@ -1,6 +1,6 @@
-import { CodeSnippet } from './code-snippet';
-import { ValueSourceInterfacePassback } from './interfaces/abstract-value-source';
-import { AbstractConstantValueSource } from './interfaces/abstract-constant-value-source';
+import { CodeSnippet } from "./code-snippet";
+import { ValueSourceInterfacePassback } from "../interface/abstract-value-source";
+import { AbstractConstantValueSource } from "../interface/abstract-constant-value-source";
 
 export class CodeSnippetValueSource extends AbstractConstantValueSource<CodeSnippet, string> {
   constructor({

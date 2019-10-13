@@ -7,5 +7,12 @@
     "tsc": "tsc"
   },
   "author": "Will Smart",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^12.7.12",
+    "chai": "^4.2.0",
+    "mocha": "^6.2.1",
+    "ts-node": "^8.4.1",
+    "typescript": "^3.6.4"
+  }
 }

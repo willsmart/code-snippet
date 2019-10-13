@@ -4,19 +4,22 @@ import {
   CodeSnippetCallResult,
   CodeSnippetSideEffect,
   CodeSnippetCallSuccess,
-} from "./interfaces/code-snippet";
+} from "../interface/code-snippet";
 import { CodeSnippetObjectProxyManager } from "./code-snippet-object-proxy-manager";
 import unasyncValue from "./unasync-value";
-import { anyObject, anyValue, anyObject_T } from "./interfaces/any";
+import { anyObject, anyValue, anyObject_T } from "../interface/any";
 import { CodeSnippet } from "./code-snippet";
-import { HandlePromise } from "./interfaces/promise-handler";
-import { noboSingleton } from "./interfaces/nobo-singleton";
+import { HandlePromise } from "../interface/promise-handler";
+import { noboSingleton } from "../interface/nobo-singleton";
 
 export class CodeSnippetCaller<T extends anyValue, Arg extends anyValue> {
   codeSnippet: CodeSnippet<T>;
   localArgs: { [key: string]: CodeSnippetArg<Arg> };
   handlePromise: HandlePromise;
 
+  /// Tests:
+  ///   retains the arguments is was constructed with
+  ///   uses the singleton's handlePromise by default
   constructor({
     codeSnippet,
     localArgs = {},

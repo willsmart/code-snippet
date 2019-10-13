@@ -1,6 +1,6 @@
-import { anyValue } from "./interfaces/any";
-import { CodeSnippetCallInstance } from "./interfaces/code-snippet";
-import { noboSingleton } from "./interfaces/nobo-singleton";
+import { anyValue } from "../interface/any";
+import { CodeSnippetCallInstance } from "../interface/code-snippet";
+import { noboSingleton } from "../interface/nobo-singleton";
 
 export default function<T>(
   callInstance: CodeSnippetCallInstance,

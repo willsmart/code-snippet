@@ -1,4 +1,4 @@
-import permissableGlobals from './permissable-globals';
+import permissableGlobals from "./permissable-globals";
 import {
   ValueSourceRegistry_publicInterface,
   SourceGenerator,
@@ -6,9 +6,9 @@ import {
   ValueSource_sinkInterface,
   ValueSource_stateForOwner,
   ValueSink_publicInterface,
-} from './interfaces/sinks-and-sources';
-import { anyValue } from './interfaces/any';
-import { Caster } from './interfaces/misc';
+} from "../interface/sinks-and-sources";
+import { anyValue } from "../interface/any";
+import { Caster } from "../interface/misc";
 
 export class CodeSnippet<T> {
   codeString: string;
