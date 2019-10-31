@@ -1,3 +1,5 @@
+import { start } from "repl"
+
 // locate-end
 // © Will Smart 2018. Licence: MIT
 
@@ -28,6 +30,31 @@ locateEnd('` ${1+"\\"two\\""+three(four[5])}`+six')
 locateEnd('eeepies','p') == {"range":[0,4],"type":"p"}
 */
 
+export enum EndChar {
+  brace = '}',
+  parenthesis = ")",
+  squareBracket = "]",
+  singleQuote = "'",
+  doubleQuote = '"',
+  backTick = "`",
+  endOfLine = '',
+  blockComment = "*/",
+  endOfString = ''
+}
+
+export enum StartChar {
+  brace = '{',
+  templateInterpolation = '${',
+  parenthesis = "(",
+  squareBracket = "[",
+  singleQuote = "'",
+  doubleQuote = '"',
+  backTick = "`",
+  lineComment = "//",
+  blockComment = "/*",
+  startOfString = ''
+}
+
 export enum BlockType {
   braces = "{}",
   parentheses = "()",
@@ -36,173 +63,96 @@ export enum BlockType {
   singleQuotes = "''",
   doubleQuotes = '""',
   template = "``",
-  openEnded = "...",
-  customClosingCharacter = "custom",
+  lineComment = "//",
+  blockComment = "/**/",
+  wholeString = "...",
 }
+
+const bookendsByBlockType:{[type:string]:{startChar:StartChar, endChar:EndChar}} = {
+  [BlockType.braces]: {startChar: StartChar.brace, endChar:EndChar.brace},
+  [BlockType.parentheses]: {startChar: StartChar.parenthesis, endChar:EndChar.parenthesis},
+  [BlockType.squareBrackets]: {startChar: StartChar.squareBracket, endChar:EndChar.squareBracket},
+  [BlockType.templateInterpolation]: {startChar: StartChar.templateInterpolation, endChar:EndChar.brace},
+  [BlockType.singleQuotes]: {startChar: StartChar.singleQuote, endChar:EndChar.singleQuote},
+  [BlockType.doubleQuotes]: {startChar: StartChar.doubleQuote, endChar:EndChar.doubleQuote},
+  [BlockType.template]: {startChar: StartChar.backTick, endChar:EndChar.backTick},
+  [BlockType.wholeString]: {startChar: StartChar.startOfString, endChar:EndChar.endOfString},
+  [BlockType.lineComment]: {startChar: StartChar.lineComment, endChar:EndChar.endOfLine},
+  [BlockType.blockComment]: {startChar: StartChar.blockComment, endChar:EndChar.blockComment}
+}
+
 export type Block = {
-  range: [number, number | undefined];
+  range: [number, number];
   type: BlockType;
-  customCloseChar?: string;
   children: Block[];
+  string: string;
 };
 
-export function locateEndOfString(string: string, closeChar: string | false | undefined, openIndex: number): Block {
-  const openIndexWas = openIndex;
-  if (closeChar !== false && (typeof closeChar != "string" || closeChar.length != 1)) {
-    closeChar = string.charAt(openIndex);
-    switch (closeChar) {
-      case '"':
-      case "'":
-      case "`":
-        break;
-      default:
-        return locateEnd(string, undefined, openIndex);
-    }
-    openIndex++;
+function blockTypeForString(string:string):BlockType {
+  for (const blockType of [BlockType.braces,BlockType.templateInterpolation,BlockType.parentheses,BlockType.squareBrackets,BlockType.singleQuotes,BlockType.doubleQuotes,BlockType.template, BlockType.lineComment, BlockType.blockComment]) {
+    const {startChar}:{startChar:StartChar} = bookendsByBlockType[blockType]
+    if (string.substring(0,startChar.length)===startChar) return blockType;
   }
-
-  let regex;
-  switch (closeChar) {
-    case false:
-      regex = /(?:\\$|(?!\$\{)[\s\S])*/g;
-      break;
-    case "`":
-      regex = /(?:\\`|\\$|(?!\$\{)[^`])*/g;
-      break;
-    case "'":
-      regex = /(?=((?:\\'|[^'])*))\1'/g;
-      break;
-    case '"':
-      regex = /(?=((?:\\"|[^"])*))\1"/g;
-      break;
-    default:
-      return locateEnd(string, closeChar, openIndex);
-  }
-  let range: [number, number | undefined] = [openIndexWas, undefined],
-    type: BlockType | undefined =
-      closeChar === false
-        ? BlockType.openEnded
-        : closeChar == "'"
-        ? BlockType.singleQuotes
-        : closeChar == '"'
-        ? BlockType.doubleQuotes
-        : closeChar == "`"
-        ? BlockType.template
-        : BlockType.customClosingCharacter,
-    customCloseChar: string | undefined = type === BlockType.customClosingCharacter ? <string>closeChar : undefined,
-    children: Block[] = [];
-
-  if (closeChar !== false && closeChar != "`") {
-    regex.lastIndex = openIndex;
-    const match = regex.exec(string);
-    if (match) range[1] = regex.lastIndex;
-    return { range, type, customCloseChar, children };
-  }
-
-  regex.lastIndex = openIndex;
-  while (true) {
-    regex.exec(string);
-    if (regex.lastIndex == string.length) return { range, type, customCloseChar, children };
-    const endChar = string.charAt(regex.lastIndex);
-    if (endChar === closeChar) {
-      return { range: [range[0], regex.lastIndex + 1], type, customCloseChar, children };
-    }
-
-    // must be a ${
-    const child = locateEnd(string, undefined, regex.lastIndex + 1);
-    if (!child) throw new Error(`Could not find matching ${closeChar}`);
-    if (child.type == "{}") {
-      child.type = BlockType.templateInterpolation;
-      child.range[0]--;
-    }
-    children.push(child);
-    if (child.range[1] === undefined) return { range, type, customCloseChar, children };
-    regex.lastIndex = child.range[1];
-  }
+  return BlockType.wholeString
 }
 
-type OpenBracket = "{" | "[" | "(";
-const bracketTypes = {
-  "(": ")",
-  "[": "]",
-  "{": "}",
-};
+export default function locateEnd(string: string, blockType: BlockType|'auto' = 'auto', openIndex:number = 0): Block {
+  if (blockType==='auto') blockType = blockTypeForString(string.substring(openIndex))
 
-locateEnd.locateEndOfString = locateEndOfString;
-export default function locateEnd(
-  string: string,
-  closeChar: string | false | undefined = undefined,
-  openIndex: number = 0
-): Block {
-  let range: [number, number | undefined] = [openIndex, undefined],
-    type: BlockType | undefined,
-    customCloseChar: string | undefined,
-    children: Block[] = [];
+  let children: Block[] = [];
+  const {endChar, startChar} = bookendsByBlockType[blockType]
 
-  let closeCharClass = "";
-  if (closeChar !== false && (typeof closeChar != "string" || closeChar.length != 1)) {
-    const openChar = string.charAt(openIndex);
-    switch (openChar) {
-      case '"':
-      case "'":
-      case "`":
-        return locateEndOfString(string, undefined, openIndex);
-    }
-
-    if (!(openChar in bracketTypes)) throw new Error(`Expected a bracket type to open the block, found ${openChar}`);
-    closeChar = bracketTypes[<OpenBracket>openChar];
-    openIndex++;
-  }
-  switch (closeChar) {
-    case false:
-      type = BlockType.openEnded;
-      break;
-    case '"':
-    case "'":
-    case "`":
-      return locateEndOfString(string, closeChar, openIndex);
-    case "}":
-      type = BlockType.braces;
-      break;
-    case ")":
-      type = BlockType.parentheses;
-      break;
-    case "]":
-      type = BlockType.squareBrackets;
-      break;
+  let regex:RegExp;
+    switch (blockType) {
+      case BlockType.singleQuotes:
+      case BlockType.doubleQuotes:
+          switch (blockType) {
+            default: case BlockType.singleQuotes:
+              regex = /'(?=((?:\\'|[^'])*))\1(?=')/g;
+              break;
+              case BlockType.doubleQuotes:
+                  regex = /"(?=((?:\\"|[^"])*))\1(?=")/g;
+                  break;
+          }
+          regex.lastIndex = openIndex;
+          const match = regex.exec(string);
+        if (!match) {
+          throw new Error(`Could not match string of type ${blockType}`)
+        }
     default:
-      type = BlockType.customClosingCharacter;
-      customCloseChar = closeChar;
-      closeCharClass = `\\${closeChar}`;
-      break;
-  }
+        switch (blockType) {
+          case BlockType.template: regex = /(?:\\`|\\$|(?!\$\{)[^`])*/g; break;
+          case BlockType.lineComment: regex = /(?:(?!$).)*/g; break;
+          case BlockType.blockComment: regex = /(?:(?!\*\/)[\\s\\S])*/g; break;
+          default: regex = /(?:(?!\/\*|\/\/)[^'"\\`{}()[\]])*/g;break;
+        }
+        regex.lastIndex = openIndex + startChar.length;
+        while (true) {
+          regex.exec(string);
 
-  const regex = new RegExp(`[^'"\\\`{}()[\\]${closeCharClass}]*`, "g");
+          if (blockType===BlockType.lineComment) break;
+          if (blockType===BlockType.wholeString && regex.lastIndex == string.length) break;
+          if (endChar && string.substring(regex.lastIndex, regex.lastIndex+endChar.length) === endChar) break;
 
-  regex.lastIndex = openIndex;
-  while (true) {
-    if (regex.lastIndex == string.length) return { range, type, customCloseChar, children };
-    const endChar = string.charAt(regex.lastIndex);
-    if (endChar === closeChar) {
-      return { range: [range[0], regex.lastIndex + 1], type, customCloseChar, children };
-    }
-    let child;
-    switch (endChar) {
-      case "`":
-      case "'":
-      case '"':
-        child = locateEndOfString(string, undefined, regex.lastIndex);
-        break;
-      case "[":
-      case "{":
-      case "(":
-        child = locateEnd(string, undefined, regex.lastIndex);
-        break;
-      default:
-        throw new Error(`Could not find matching ${closeChar}`);
-    }
-    children.push(child);
-    if (child.range[1] === undefined) return { range, type, customCloseChar, children };
-    regex.lastIndex = child.range[1];
-  }
+          if (regex.lastIndex == string.length) {
+            throw new Error(`Could not match block of type ${blockType}`)
+          }
+
+          const nextChar = string.substring(regex.lastIndex, regex.lastIndex+StartChar.templateInterpolation.length) === StartChar.templateInterpolation ? StartChar.templateInterpolation :
+          string.substring(regex.lastIndex, regex.lastIndex+StartChar.lineComment.length) === StartChar.lineComment ? StartChar.lineComment :
+          string.substring(regex.lastIndex, regex.lastIndex+StartChar.blockComment.length) === StartChar.blockComment ? StartChar.blockComment :
+           string.charAt(regex.lastIndex);
+          switch (nextChar) {
+              case StartChar.templateInterpolation:case StartChar.blockComment:case StartChar.lineComment:case StartChar.backTick:case StartChar.brace:case StartChar.parenthesis:case StartChar.squareBracket:case StartChar.singleQuote:case StartChar.doubleQuote:
+                  const child = locateEnd(string, 'auto', regex.lastIndex)
+                  children.push(child);
+                  regex.lastIndex = child.range[1];
+                  break;
+
+              default: throw new Error(`Could not find matching ${endChar} (found ${nextChar} instead)`)
+            }
+        }
+      }
+
+      return { range: [openIndex, regex.lastIndex + endChar.length], type:blockType, children, string: string.substring(openIndex, regex.lastIndex + endChar.length) };
 }
