@@ -1,132 +1,189 @@
 import { SourceFile } from "./source-file";
-import locateEnd, { Block as BaseBlock, BlockType } from "./locate-end";
-
+import { TSESTree, AST_NODE_TYPES } from "@typescript-eslint/typescript-estree";
+import * as parser from "@typescript-eslint/parser/dist/parser";
+import {
+  Statement,
+  BaseNode,
+  ClassElement,
+  LineAndColumnData,
+  Expression
+} from "@typescript-eslint/typescript-estree/dist/ts-estree/ts-estree";
 enum ContextType {
   class = "class",
-  function = "function",
-  none = "none",
+  method = "method",
+  note = "note",
+  assertion = "assertion",
+  testContext = "testContext"
 }
 
 type Context = {
   type: ContextType;
   description?: string;
+  range: [number, number];
+  lineRange: [LineAndColumnData, LineAndColumnData];
+
+  children: Context[];
+  parent: Context | undefined;
 };
 
-type Block = {
-  range: [number, number | undefined];
-  type: BlockType;
-  customCloseChar?: string;
-
-  lineRange: [number, number | undefined];
-  context: Context;
-  children: Block[];
-  parent?: Block;
-  indexInParent?: number;
-};
-
-type Test = {
-  block: Block;
-  line: number;
+type Test = Context & {
   description: string;
 };
 
-function blockBefore(block: Block): Block | undefined {
-  return (
-    (block.parent && block.indexInParent && block.parent.children && block.parent.children[block.indexInParent - 1]) ||
-    undefined
-  );
-}
-
-function rangeBefore(block: Block): { range: [number, number]; lineRange: [number, number] } {
-  if (!block.parent)
-    return { range: [block.range[0], block.range[0]], lineRange: [block.lineRange[0], block.lineRange[0]] };
-  const sibling = blockBefore(block);
-  if (!(sibling && sibling.range[1] !== undefined && sibling.lineRange[1] !== undefined)) {
-    return {
-      range: [block.parent.range[0], block.range[0]],
-      lineRange: [block.parent.lineRange[0], block.lineRange[0]],
-    };
-  }
-  return {
-    range: [sibling.range[1], block.range[0]],
-    lineRange: [sibling.lineRange[1], block.lineRange[0]],
-  };
-}
-
-const reverseClassHeaderRegex = /\A\s*(?:<[^>]*>)?\s*(\w+)\s+ssalc\b/;
-const reverseFunctionHeaderRegex = /\A\s*(?:(?!:\)).)*:\)[^(]*\(\s*(\w+)(?:\s*(?:noitcnuf|citats|tropxe|retteg|rettes))*\s*\n/;
-
-function reverseString(string: string): string {
-  let reversedString = "";
-  for (let i = string.length - 1; i >= 0; i--) reversedString += string.charAt(i);
-  return reversedString;
-}
+type AnyNode = Statement | ClassElement | Expression;
 
 export class Source {
   file: SourceFile;
   body = "";
-  reverseBody = "";
   lines: string[] = [];
-  block: Block;
+  contexts: Context[] = [];
   tests: Test[] = [];
+  ast: TSESTree.Program | undefined;
 
   constructor(file: SourceFile) {
     this.file = file;
-    this.block = this.convertBaseBlock(locateEnd(this.body, false));
   }
 
-  convertBaseBlock(baseBlock: BaseBlock, parent?: Block, indexInParent?: number): Block {
-    const { range, type, customCloseChar, children: baseChildren } = baseBlock;
-    const block: Block = {
-      range,
-      type,
-      context: { type: ContextType.none },
-      customCloseChar,
-      lineRange: [
-        this.lineIndexForCharIndex(range[0]),
-        range[1] === undefined ? undefined : this.lineIndexForCharIndex(range[1]),
-      ],
-      parent,
-      indexInParent,
-      children: [],
-    };
-    block.children = baseChildren
-      .filter(baseChild => baseChild.type == BlockType.braces)
-      .map((baseChild, childIndex) => this.convertBaseBlock(baseChild, block, childIndex));
-    block.context = this.contextForBlock(block);
-    return block;
-  }
-
-  stringForRange(range: [number, number | undefined]): string {
-    return this.body.substring(range[0], range[1]);
-  }
-
-  reverseStringForRange(range: [number, number | undefined]): string {
-    return this.reverseBody.substring(
-      range[1] === undefined ? 0 : this.reverseBody.length - range[1],
-      this.reverseBody.length - range[0]
-    );
-  }
-
-  lineIndexForCharIndex(charIndex: number): number {
-    let charCount = 0;
-    return this.lines.findIndex(line => charIndex < (charCount += line.length + 1));
-  }
-
-  contextForBlock(block: Block): Context {
-    const preceedingString = this.reverseStringForRange(rangeBefore(block).range);
-    switch (block.type) {
-      case BlockType.braces:
-        {
-          let match = reverseClassHeaderRegex.exec(preceedingString);
-          if (match) return { type: ContextType.class, description: match[1] };
-
-          match = reverseFunctionHeaderRegex.exec(preceedingString);
-          if (match) return { type: ContextType.function, description: match[1] };
-        }
-        break;
+  parse(): void {
+    try {
+      this.ast = parser.parseForESLint(this.body, {
+        ecmaVersion: 2019,
+        sourceType: "module",
+        comment: true
+      }).ast;
+    } catch (error) {
+      this.ast = undefined;
+      console.error(
+        `Could not parse file ${this.file.filename}: ${error.message}`
+      );
     }
-    return { type: ContextType.none };
+    this.contexts.length = 0;
+    this.tests.length = 0;
+    if (this.ast) {
+      this.ast.body.forEach(statement =>
+        this.contexts.push(...this.convertStatement(statement))
+      );
+      if (this.ast.comments) {
+        const lineComments = this.ast.comments.filter(
+          ({ type }) => type == "Line"
+        );
+
+        let contextStack: (Context | undefined)[] = [];
+        let prevEnd: number | undefined;
+        for (const { loc, range, value } of lineComments) {
+          if (range[0] == prevEnd) prevEnd = range[1];
+          else contextStack.length = 0;
+
+          const match = /^\?( +)(?:\.\.\.\s*)?(?:it (.*)|(.*))$/.exec(value);
+          if (!match) continue;
+          const [_, indent, assertion, contextBody] = match;
+
+          if (!contextStack.length) contextStack.push(this.contextAt(range[0]));
+          if (!contextStack[0]) continue;
+          const filledContextStackLength = contextStack.length;
+          contextStack.length = indent.length - 1;
+          if (filledContextStackLength < contextStack.length) {
+            contextStack.fill(
+              contextStack[filledContextStackLength - 1],
+              filledContextStackLength,
+              contextStack.length
+            );
+          }
+          const parent = contextStack[contextStack.length - 1];
+          const test: Test = {
+            type: assertion ? ContextType.assertion : ContextType.testContext,
+            range,
+            lineRange: [loc.start, loc.end],
+            children: [],
+            parent,
+            description: assertion || contextBody
+          };
+          if (parent) parent.children.push(test);
+          if (contextBody) contextStack.push(test);
+        }
+      }
+    }
+  }
+
+  //?   With a line comment
+  //?     ... that starts at char 0
+  //?       ... it should do the same as usual
+
+  contextAt(location: number): Context | undefined {
+    return this.contexts.find(context => inside(context));
+    function inside(context: Context): Context | undefined {
+      if (location < context.range[0] || location >= context.range[1]) return;
+
+      let desc: Context | undefined;
+
+      context.children.find(child => (desc = inside(child)));
+      return desc || context;
+    }
+  }
+
+  convertStatement(statement: AnyNode, parent?: Context): Context[] {
+    const source = this;
+
+    switch (statement.type) {
+      case AST_NODE_TYPES.ClassDeclaration:
+      case AST_NODE_TYPES.ClassExpression: {
+        const context: Context = {
+          type: ContextType.class,
+          description: `${statement.id ? statement.id.name : "unamed-class"}`,
+          range: statement.range,
+          lineRange: [statement.loc.start, statement.loc.end],
+          children: [],
+          parent
+        };
+        for (const child of statement.body.body)
+          context.children.push(...source.convertStatement(child, context));
+        return [context];
+      }
+      case AST_NODE_TYPES.MethodDefinition:
+      case AST_NODE_TYPES.TSAbstractMethodDefinition: {
+        if (
+          !(
+            "id" in statement.key &&
+            "body" in statement.value &&
+            statement.value.body
+          )
+        )
+          break;
+        const context: Context = {
+          type: ContextType.method,
+          description: `${
+            statement.key.id ? statement.key.id.name : "unamed-class"
+          }`,
+          range: statement.range,
+          lineRange: [statement.loc.start, statement.loc.end],
+          children: [],
+          parent
+        };
+        if (statement.value.body)
+          context.children.push(
+            ...source.convertStatement(statement.value.body, context)
+          );
+        return [context];
+      }
+    }
+    const contexts: Context[] = [];
+
+    if ("body" in statement) {
+      if (Array.isArray(statement.body)) {
+        for (const child of statement.body)
+          contexts.push(...source.convertStatement(child, parent));
+      } else if (statement.body && "id" in statement.body) {
+        contexts.push(...source.convertStatement(statement.body, parent));
+      }
+    }
+    if (
+      "declaration" in statement &&
+      statement.declaration &&
+      "id" in statement.declaration
+    ) {
+      contexts.push(...source.convertStatement(statement.declaration, parent));
+    }
+    return contexts;
   }
 
   static async withFile(file: SourceFile) {
@@ -135,29 +192,24 @@ export class Source {
     return source;
   }
 
-  blockAtCharIndex(charIndex: number): Block | undefined {
-    if (charIndex < this.block.range[0] || (this.block.range[1] !== undefined && charIndex >= this.block.range[1]))
-      return undefined;
-    return touchedSubBlock(this.block);
-
-    function touchedSubBlock(block: Block): Block {
-      for (const child of block.children) {
-        if (charIndex >= child.range[0] && (child.range[1] === undefined || charIndex < child.range[1])) {
-          return touchedSubBlock(child);
-        }
-      }
-      return block;
-    }
-  }
-
   async asyncInit() {
     this.body = await this.file.readSourceFile();
-    this.reverseBody = reverseString(this.body);
     this.lines = this.body.split("\n");
-    this.block = this.convertBaseBlock(locateEnd(this.body, false));
+    this.parse();
+    //    this.baseBlock=locateEnd(this.body, BlockType.wholeString)
+    //    this.block = this.convertBaseBlock(this.baseBlock);
 
-    this.tests = [];
-    const re = /^ *\/\/\/? *Test(?:: *(.*)$|s: *)((?:\n\s*\/\/\/.*)+))/g;
+    console.log(this.file.filename);
+    console.log(
+      JSON.stringify(
+        this.contexts,
+        (key: string, val: any) => (key == "parent" ? undefined : val),
+        2
+      )
+    );
+
+    /*    this.tests = [];
+    const re = /^ *\/\/\/? *Test(?:: *(.*)$|s: *)((?:\n\s*\/\/\/.*)+)/g;
     let match;
     while ((match = re.exec(this.body))) {
       const { 1: test, 2: tests, index } = <{ 1: string | null; 2: string | null; index: number }>(<unknown>match);
@@ -183,6 +235,6 @@ export class Source {
           lineNumber++;
         }
       }
-    }
+    }*/
   }
 }

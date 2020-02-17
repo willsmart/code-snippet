@@ -1,5 +1,5 @@
-import { anyObject, anyValue } from "../interface/any";
-import { CodeSnippetCallInstance } from "../interface/code-snippet";
+import { anyObject, anyValue } from '../../interface/general/any';
+import { CodeSnippetCallInstance } from '../../interface/code-snippets/code-snippet';
 
 type primitive = string | number | boolean | symbol | null | Function | undefined;
 
@@ -15,6 +15,9 @@ export class CodeSnippetObjectProxyManager {
   wasModified: () => void;
 
   commit() {
+    //? Tests:
+    //?   retains the arguments is was constructed with
+    //?   uses the singleton's handlePromise by default
     let { source } = this;
 
     this.deletedChildren.forEach(key => {
@@ -28,7 +31,10 @@ export class CodeSnippetObjectProxyManager {
         const childMgr = this.childObjects[key];
 
         if (!sourceChild) {
-          Object.defineProperty(source, key, { ...descriptor, value: childMgr.source });
+          Object.defineProperty(source, key, {
+            ...descriptor,
+            value: childMgr.source,
+          });
         } else if (sourceChild !== childMgr.source) continue;
 
         childMgr.commit();
@@ -61,7 +67,7 @@ export class CodeSnippetObjectProxyManager {
     if (descriptor && !descriptor.writable) return false;
 
     this.deletedChildren.delete(key);
-    if (value && typeof value == "object") {
+    if (value && typeof value == 'object') {
       value = this._createChildObject(key, <anyObject>value).proxy;
     } else {
       delete this.childObjects[key];
@@ -76,7 +82,7 @@ export class CodeSnippetObjectProxyManager {
     const descriptorWas = this._childDescriptor(key);
     if (descriptorWas && !descriptorWas.configurable) return false;
 
-    if ("value" in descriptor)
+    if ('value' in descriptor)
       descriptor.value = this.unasyncValue(`${this.keyPath}.${key}`, descriptor.value, value => {
         this.defineChildProperty(key, {
           ...descriptor,
@@ -86,7 +92,7 @@ export class CodeSnippetObjectProxyManager {
     const { value } = descriptor;
 
     this.deletedChildren.delete(key);
-    if (value && typeof value == "object") {
+    if (value && typeof value == 'object') {
       descriptor = {
         ...descriptor,
         value: this._createChildObject(key, value).proxy,
@@ -143,7 +149,7 @@ export class CodeSnippetObjectProxyManager {
     });
     const { value: sourceChild } = sourceDescriptor;
 
-    if (!sourceChild || typeof sourceChild != "object") return sourceDescriptor;
+    if (!sourceChild || typeof sourceChild != 'object') return sourceDescriptor;
 
     return Object.defineProperty(this.childValues, key, {
       ...sourceDescriptor,

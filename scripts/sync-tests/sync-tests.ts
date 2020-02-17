@@ -5,7 +5,7 @@ import {
   writeFile as writeFileCB,
   realpath as realpathCB,
   Dirent,
-  stat as statCB,
+  stat as statCB
 } from "fs";
 import { promisify } from "util";
 import { dirname } from "path";
@@ -32,7 +32,6 @@ const stat = promisify(statCB);
       if (dirent.isFile() && name.endsWith(".ts")) {
         const sourceFile = new SourceFile(childSubpath, sourceDir, testsDir);
         const source = await Source.withFile(sourceFile);
-        debugger;
         console.log(source.tests);
       }
       if (dirent.isDirectory()) {

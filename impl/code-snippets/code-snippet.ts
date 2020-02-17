@@ -1,16 +1,10 @@
-import permissableGlobals from "./permissable-globals";
-import {
-  ValueSourceRegistry_publicInterface,
-  SourceGenerator,
-  ValueSource_ownerInterface,
-  ValueSource_sinkInterface,
-  ValueSource_stateForOwner,
-  ValueSink_publicInterface,
-} from "../interface/sinks-and-sources";
-import { anyValue } from "../interface/any";
-import { Caster } from "../interface/misc";
+import { anyValue } from '../../interface/general/any';
+import { CodeSnippet_publicInterface } from '../../interface/code-snippets/code-snippet';
+import { Caster } from '../../interface/general/caster';
 
-export class CodeSnippet<T> {
+import permissableGlobals from './permissable-globals';
+
+export class CodeSnippet<T> implements CodeSnippet_publicInterface<T> {
   codeString: string;
   maskGlobals: string[];
   func: (...args: anyValue[]) => T;

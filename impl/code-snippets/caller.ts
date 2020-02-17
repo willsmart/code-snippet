@@ -1,16 +1,18 @@
+import { anyValue, anyObject_T, anyObject } from '../../interface/general/any';
 import {
   CodeSnippetArg,
-  CodeSnippetCallInstance,
   CodeSnippetCallResult,
   CodeSnippetSideEffect,
+  CodeSnippetCallInstance,
   CodeSnippetCallSuccess,
-} from "../interface/code-snippet";
-import { CodeSnippetObjectProxyManager } from "./code-snippet-object-proxy-manager";
-import unasyncValue from "./unasync-value";
-import { anyObject, anyValue, anyObject_T } from "../interface/any";
-import { CodeSnippet } from "./code-snippet";
-import { HandlePromise } from "../interface/promise-handler";
-import { noboSingleton } from "../interface/nobo-singleton";
+} from '../../interface/code-snippets/code-snippet';
+import { HandlePromise } from '../../interface/general/promise-handler';
+
+import { generalSingleton } from '../general/singleton';
+
+import { CodeSnippet } from './code-snippet';
+import unasyncValue from './unasync-value';
+import { CodeSnippetObjectProxyManager } from './object-proxy-manager';
 
 export class CodeSnippetCaller<T extends anyValue, Arg extends anyValue> {
   codeSnippet: CodeSnippet<T>;
@@ -31,7 +33,7 @@ export class CodeSnippetCaller<T extends anyValue, Arg extends anyValue> {
   }) {
     this.codeSnippet = codeSnippet;
     this.localArgs = localArgs;
-    this.handlePromise = handlePromise || noboSingleton.handlePromise;
+    this.handlePromise = handlePromise || generalSingleton.handlePromise;
   }
 
   call(localOverrides: anyObject_T<Arg> = {}): CodeSnippetCallResult<T> {
@@ -70,7 +72,7 @@ export class CodeSnippetCaller<T extends anyValue, Arg extends anyValue> {
         }
       );
       locals[key] = localValue = v;
-      if (!localValue || typeof localValue !== "object") continue;
+      if (!localValue || typeof localValue !== 'object') continue;
 
       let haveRegisteredSideEffect = false;
 
@@ -110,7 +112,7 @@ export class CodeSnippetCaller<T extends anyValue, Arg extends anyValue> {
             return undefined;
           })
         );
-        if (!result) reject(new Error("handlePromise did not run all its jobs"));
+        if (!result) reject(new Error('handlePromise did not run all its jobs'));
         resolve(result);
       }),
     };
