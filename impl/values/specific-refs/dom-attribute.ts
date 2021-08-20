@@ -1,5 +1,5 @@
-import { ValueRef_publicInterface as ValueSink } from '../../../interface/values/refs-and-values';
-import { HTMLElementSinkManager_childInterface as HTMLElementSinkManager } from './dom-element';
+import { ValueRef_forTheWorld as ValueSink } from '../../../interface/values/sinks-and-sources';
+import { HTMLElementSinkManager_asSeenByIts_childs as HTMLElementSinkManager } from './dom-element';
 import sourceRegistries, {
   HTMLElementName,
   NumberName,

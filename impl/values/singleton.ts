@@ -1,11 +1,11 @@
-class NoboSingleton implements NoboSingleton_publicInterface {
+class NoboSingleton implements NoboSingleton_forTheWorld {
   createValueSourceRegistry<T>({
     sourceGenerator,
     valueSourceCleaningPolicy,
   }: {
     sourceGenerator: SourceGenerator<T>;
-    valueSourceCleaningPolicy: ValueSourceCleaningPolicy;
-  }): ValueSourceRegistry_publicInterface<T> {
+    valueSourceCleaningPolicy: SourceCleaningPolicy;
+  }): ValueSourceRegistry_forTheWorld<T> {
     return new ValueSourceRegistry<T>({ sourceGenerator, valueSourceCleaningPolicy });
   }
   createDelayedCaller({ delayMs, sliceMs }: { delayMs: number; sliceMs: number }): DelayedCaller {
@@ -20,7 +20,7 @@ class NoboSingleton implements NoboSingleton_publicInterface {
     handlePromise: HandlePromise;
     delayMs: number;
     sliceMs: number;
-  }): ValueSourceCleaningPolicy_publicInterface {
+  }): SourceCleaningPolicy_forTheWorld {
     return delayedSourceCleaningPolicy({ handlePromise: handlePromise || this.handlePromise, delayMs, sliceMs });
   }
   isPromise = isPromise;
@@ -36,7 +36,7 @@ class NoboSingleton implements NoboSingleton_publicInterface {
     return this.promiseHandler.handle(promise);
   }
 
-  private _promiseOwner?: PromiseHandlerOwner_promiseHandlerInterface;
+  private _promiseOwner?: PromiseHandlerOwner_asSeenByIts_promiseHandlers;
   get promiseOwner() {
     return this._promiseOwner || (this._promiseOwner = new IntervalPromiseHandlerOwner());
   }

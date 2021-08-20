@@ -2,7 +2,7 @@ import { anyValue } from '../../../interface/general/any';
 import {
   HandlePromise,
   PromiseOrPromiseGenerator,
-  PromiseHandlerOwner_promiseHandlerInterface as PromiseHandlerOwner,
+  PromiseHandlerOwner_asSeenByIts_promiseHandlers as PromiseHandlerOwner,
 } from '../../../interface/general/promise-handler';
 
 export class PromiseHandler {

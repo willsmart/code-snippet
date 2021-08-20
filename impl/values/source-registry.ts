@@ -1,11 +1,11 @@
 import {
-  ValueSource_ownerInterface,
-  ValueSink_registryInterface,
+  ValueSource_asSeenByIts_owners,
+  ValueSink_asSeenByIts_registrys,
   ValueSource_stateForOwner as ValueSourceState,
   SourceName,
   SourceGenerator,
-} from "../../interfaces/sinks-and-sources";
-import ValueSourceCleaningPolicy from "../../interfaces/source-cleaning-policies";
+} from '../../interfaces/sinks-and-sources';
+import SourceCleaningPolicy from '../../interfaces/source-cleaning-policies';
 
 export default class ValueSourceRegistry<T> {
   constructor({
@@ -13,7 +13,7 @@ export default class ValueSourceRegistry<T> {
     valueSourceCleaningPolicy,
   }: {
     sourceGenerator: SourceGenerator<T>;
-    valueSourceCleaningPolicy: ValueSourceCleaningPolicy;
+    valueSourceCleaningPolicy: SourceCleaningPolicy;
   }) {
     this.sourceGenerator = sourceGenerator;
     this.valueSourceCleaningPolicy = valueSourceCleaningPolicy;
@@ -23,7 +23,10 @@ export default class ValueSourceRegistry<T> {
     return name.toString() in this.sources;
   }
 
-  attachSinkToSource(sourceName: SourceName<T>, sink: ValueSink_registryInterface<T>): ValueSink_registryInterface<T> {
+  attachSinkToSource(
+    sourceName: SourceName<T>,
+    sink: ValueSink_asSeenByIts_registrys<T>
+  ): ValueSink_asSeenByIts_registrys<T> {
     const name = sourceName.toString(),
       { sources } = this,
       source = sources[name] || (sources[name] = this.sourceGenerator(sourceName));
@@ -42,7 +45,7 @@ export default class ValueSourceRegistry<T> {
     return sink;
   }
 
-  private dettachSinkFromSource(sourceName: SourceName<T>, sink: ValueSink_registryInterface<T>) {
+  private dettachSinkFromSource(sourceName: SourceName<T>, sink: ValueSink_asSeenByIts_registrys<T>) {
     const name = sourceName.toString(),
       { sources } = this,
       source = sources[name];
@@ -55,10 +58,10 @@ export default class ValueSourceRegistry<T> {
   }
 
   // Private parts
-  private sources: { [name: string]: ValueSource_ownerInterface<T> } = {};
+  private sources: { [name: string]: ValueSource_asSeenByIts_owners<T> } = {};
   private zombieNames = new Set<string>();
   private sourceGenerator: SourceGenerator<T>;
-  private valueSourceCleaningPolicy: ValueSourceCleaningPolicy;
+  private valueSourceCleaningPolicy: SourceCleaningPolicy;
 
   private delete(sourceName: SourceName<T>): Promise<void> {
     const name = sourceName.toString(),

@@ -1,7 +1,7 @@
 import {
   HandlePromise,
   PromiseOrPromiseGenerator,
-  PromiseHandlerOwner_promiseHandlerInterface as PromiseHandlerOwner,
+  PromiseHandlerOwner_asSeenByIts_promiseHandlers as PromiseHandlerOwner,
 } from '../../../interface/general/promise-handler';
 
 import { PromiseHandler } from './promise-handler';

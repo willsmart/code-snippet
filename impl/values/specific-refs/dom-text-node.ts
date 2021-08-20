@@ -1,9 +1,9 @@
-import { ValueSink_publicInterface as ValueSink } from "../../../interfaces/sinks-and-sources";
+import { ValueSink_forTheWorld as ValueSink } from '../../../interfaces/sinks-and-sources';
 import sourceRegistries, {
   HTMLElementName,
   NumberName,
   OptStringName,
-} from "../../../interfaces/standard-source-registries";
+} from '../../../interfaces/standard-source-registries';
 
 export class DomTextNodeSinkManager {
   private sinks: {
@@ -52,18 +52,18 @@ export class DomTextNodeSinkManager {
   refresh() {
     const { element, index, value } = this.values;
     if (!element || index === undefined || index < 0) return;
-    DomTextNodeSinkManager.textNodeAtIndex(element, index).textContent = value || "";
+    DomTextNodeSinkManager.textNodeAtIndex(element, index).textContent = value || '';
   }
 
   static textNodeAtIndex(element: HTMLElement, index: number): Node {
-    if (index < 0) throw new Error("Invalid input passed to TextNodeSink::textNodeAtIndex: index<0");
+    if (index < 0) throw new Error('Invalid input passed to TextNodeSink::textNodeAtIndex: index<0');
     for (let child = element.firstChild; child; child = child.nextSibling) {
       if (child.nodeType == 3 && !index--) return child;
     }
     const document = element.ownerDocument;
-    if (!document) throw new Error("element has no ownerDocument, cannot create a text node");
+    if (!document) throw new Error('element has no ownerDocument, cannot create a text node');
     while (true) {
-      const child = document.createTextNode("");
+      const child = document.createTextNode('');
       element.appendChild(child);
       if (!index--) return child;
     }

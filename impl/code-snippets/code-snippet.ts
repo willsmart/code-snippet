@@ -1,10 +1,10 @@
 import { anyValue } from '../../interface/general/any';
-import { CodeSnippet_publicInterface } from '../../interface/code-snippets/code-snippet';
+import { CodeSnippet_forTheWorld } from '../../interface/code-snippets/code-snippet';
 import { Caster } from '../../interface/general/caster';
 
 import permissableGlobals from './permissable-globals';
 
-export class CodeSnippet<T> implements CodeSnippet_publicInterface<T> {
+export class CodeSnippet<T> implements CodeSnippet_forTheWorld<T> {
   codeString: string;
   maskGlobals: string[];
   func: (...args: anyValue[]) => T;

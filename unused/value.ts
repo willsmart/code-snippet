@@ -17,7 +17,7 @@
 
 // type anySourcedValue = anyPrimitive | { [key: string]: ValueSource_interface<anySourcedValue> };
 
-// interface ObjectCloningProxyManager_publicInterface extends ValueSink_interface<anySourcedValue> {
+// interface ObjectCloningProxyManager_forTheWorld extends ValueSink_interface<anySourcedValue> {
 //   value: anyPrimitive | anyObject;
 //   proxy: anyObject;
 
@@ -25,7 +25,7 @@
 //   readonly keys: string[];
 // }
 
-// class ObjectCloningProxyManager implements ObjectCloningProxyManager_publicInterface {
+// class ObjectCloningProxyManager implements ObjectCloningProxyManager_forTheWorld {
 //   keyPath: string;
 //   source: { [key: string]: ValueSource_interface<anySourcedValue> };
 //   proxy: anyObject;

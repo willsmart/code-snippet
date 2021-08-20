@@ -1,7 +1,7 @@
-import { GeneralSingleton_publicInterface } from '../../interface/general/singleton';
+import { GeneralSingleton_forTheWorld } from '../../interface/general/singleton';
 import {
   PromiseOrPromiseGenerator,
-  PromiseHandlerOwner_promiseHandlerInterface,
+  PromiseHandlerOwner_asSeenByIts_promiseHandlers,
 } from '../../interface/general/promise-handler';
 
 import DelayedCaller from './delayed-caller';
@@ -10,7 +10,7 @@ import isPromise from './is-promise';
 import { IntervalPromiseHandlerOwner } from './promise-handler/interval-promise-handler-owner';
 import { PromiseHandler } from './promise-handler/promise-handler';
 
-class GeneralSingleton implements GeneralSingleton_publicInterface {
+class GeneralSingleton implements GeneralSingleton_forTheWorld {
   createDelayedCaller({ delayMs, sliceMs }: { delayMs: number; sliceMs: number }): DelayedCaller {
     return new DelayedCaller({ delayMs, sliceMs });
   }
@@ -35,7 +35,7 @@ class GeneralSingleton implements GeneralSingleton_publicInterface {
   private get promiseHandler() {
     return this._promiseHandler || (this._promiseHandler = new PromiseHandler(this.promiseOwner));
   }
-  private _promiseOwner?: PromiseHandlerOwner_promiseHandlerInterface;
+  private _promiseOwner?: PromiseHandlerOwner_asSeenByIts_promiseHandlers;
 }
 
 export var generalSingleton = new GeneralSingleton();

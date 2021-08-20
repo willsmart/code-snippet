@@ -1,8 +1,8 @@
-import { DelayedCaller_publicInterface } from '../../interface/general/delayed_caller';
+import { DelayedCaller_forTheWorld } from '../../interface/general/delayed_caller';
 
 type Callback = () => Promise<void>;
 
-export default class DelayedCaller implements DelayedCaller_publicInterface {
+export default class DelayedCaller implements DelayedCaller_forTheWorld {
   constructor({ delayMs = 1000, sliceMs = 100 }: { delayMs: number; sliceMs: number }) {
     if (sliceMs < 10)
       throw new Error(
