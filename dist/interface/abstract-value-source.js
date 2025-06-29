@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const sinks_and_sources_1 = require("./sinks-and-sources");
+exports.AbstractValueSource = void 0;
+const value_source_1 = require("./value-source");
 class AbstractValueSource {
     constructor({ interfacePassback, value, valid, }) {
         this.privateData = {
@@ -24,7 +25,7 @@ class AbstractValueSource {
     // ValueSource_sinkInterface
     // The interface presented to attached sinks or anyone who has a reference to the source
     setValue(v) {
-        throw new Error('Method not implemented.');
+        throw new Error("Method not implemented.");
     }
     get valid() {
         return this.privateData.valid;
@@ -53,7 +54,9 @@ class AbstractValueSource {
         if (valid && sink.sourceWasInvalidated)
             sink.sourceWasInvalidated();
         sinks.delete(sink);
-        return sinks.size ? sinks_and_sources_1.ValueSource_stateForOwner.hasSinks : sinks_and_sources_1.ValueSource_stateForOwner.hasNoSinks;
+        return sinks.size
+            ? value_source_1.ValueSource_stateForOwner.hasSinks
+            : value_source_1.ValueSource_stateForOwner.hasNoSinks;
     }
     async cleanup() {
         const { privateData } = this;
@@ -71,6 +74,8 @@ class AbstractValueSource {
         privateData.valid = true;
         return this.notifySinks().then(() => privateData.cachedValue);
     }
+    // Private parts
+    privateData;
     // Get the value from the source
     get valueFromSource() {
         const { privateData } = this;
@@ -87,12 +92,12 @@ class AbstractValueSource {
         const promises = Array();
         if (valid) {
             const newValue = this.cachedValue;
-            sinks.forEach(sink => {
+            sinks.forEach((sink) => {
                 promises.push(sink.sourceHasNewValue(newValue));
             });
         }
         else {
-            sinks.forEach(sink => {
+            sinks.forEach((sink) => {
                 if (sink.sourceWasInvalidated)
                     promises.push(sink.sourceWasInvalidated());
             });

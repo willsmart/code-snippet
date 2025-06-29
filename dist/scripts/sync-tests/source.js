@@ -1,12 +1,25 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Source = void 0;
 const locate_end_1 = __importStar(require("./locate-end"));
 var ContextType;
 (function (ContextType) {
@@ -42,13 +55,15 @@ function reverseString(string) {
     return reversedString;
 }
 class Source {
+    file;
+    body = "";
+    reverseBody = "";
+    lines = [];
+    block;
+    tests = [];
     constructor(file) {
-        this.body = "";
-        this.reverseBody = "";
-        this.lines = [];
-        this.tests = [];
         this.file = file;
-        this.block = this.convertBaseBlock(locate_end_1.default(this.body, false));
+        this.block = this.convertBaseBlock((0, locate_end_1.default)(this.body, false));
     }
     convertBaseBlock(baseBlock, parent, indexInParent) {
         const { range, type, customCloseChar, children: baseChildren } = baseBlock;
@@ -119,7 +134,7 @@ class Source {
         this.body = await this.file.readSourceFile();
         this.reverseBody = reverseString(this.body);
         this.lines = this.body.split("\n");
-        this.block = this.convertBaseBlock(locate_end_1.default(this.body, false));
+        this.block = this.convertBaseBlock((0, locate_end_1.default)(this.body, false));
         this.tests = [];
         const re = /^ *\/\/\/? *Test(?:: *(.*)$|s: *)((?:\n\s*\/\/\/.*)+))/g;
         let match;

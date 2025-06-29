@@ -2,6 +2,7 @@
 // locate-end
 // © Will Smart 2018. Licence: MIT
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.locateEndOfString = exports.BlockType = void 0;
 // This locates the end of a string literal or code block from some point in a string
 // API is the function. Use via
 //   const locateEnd = require(pathToFile)

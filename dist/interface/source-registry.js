@@ -17,4 +17,4 @@
  * displays is would be associated with a "ValueSink"
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-//# sourceMappingURL=sinks-and-sources.js.map
+//# sourceMappingURL=source-registry.js.map

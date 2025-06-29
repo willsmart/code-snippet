@@ -14,7 +14,7 @@
  * A core concept is that a value cannot change without all sinks being made aware that there was a change
  *  and being able to obtain the new value.
  * An example would be a database cell value would be associated with a "ValueSource". A DOM text node that
- * displays is would be associated with a "ValueSink"
+ * displays it would be associated with a "ValueSink"
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-//# sourceMappingURL=sinks-and-sources.js.map
+//# sourceMappingURL=value-sink.js.map

@@ -12,13 +12,13 @@ import { CodeSnippet } from "./code-snippet";
 import { HandlePromise } from "../interface/promise-handler";
 import { noboSingleton } from "../interface/nobo-singleton";
 
-export class CodeSnippetCaller<T extends anyValue, Arg extends anyValue> {
+export class CodeSnippetCaller<T extends anyValue> {
   codeSnippet: CodeSnippet<T>;
-  localArgs: { [key: string]: CodeSnippetArg<Arg> };
+  localArgs: { [key: string]: CodeSnippetArg };
   handlePromise: HandlePromise;
 
   /// Tests:
-  ///   retains the arguments is was constructed with
+  ///   retains the arguments it was constructed with
   ///   uses the singleton's handlePromise by default
   constructor({
     codeSnippet,
@@ -26,7 +26,7 @@ export class CodeSnippetCaller<T extends anyValue, Arg extends anyValue> {
     handlePromise,
   }: {
     codeSnippet: CodeSnippet<T>;
-    localArgs: { [key: string]: CodeSnippetArg<Arg> };
+    localArgs: { [key: string]: CodeSnippetArg };
     handlePromise?: HandlePromise;
   }) {
     this.codeSnippet = codeSnippet;
@@ -34,7 +34,7 @@ export class CodeSnippetCaller<T extends anyValue, Arg extends anyValue> {
     this.handlePromise = handlePromise || noboSingleton.handlePromise;
   }
 
-  call(localOverrides: anyObject_T<Arg> = {}): CodeSnippetCallResult<T> {
+  call(localOverrides: anyObject = {}): CodeSnippetCallResult<T> {
     let needsRetry;
     const retryAfterPromises: { [name: string]: Promise<void> } = {},
       sideEffectIndexesByName: { [name: string]: number } = {},
@@ -44,7 +44,7 @@ export class CodeSnippetCaller<T extends anyValue, Arg extends anyValue> {
           retryAfterPromises[name] = promise;
           needsRetry = true;
         },
-        registerSideEffect(sideEffect) {
+        registerSideEffect(sideEffect, name) {
           if (name) {
             if (name in sideEffectIndexesByName) return;
             sideEffectIndexesByName[name] = sideEffects.length;
@@ -53,19 +53,23 @@ export class CodeSnippetCaller<T extends anyValue, Arg extends anyValue> {
         },
       };
     const localProxyMgrs: { [key: string]: CodeSnippetObjectProxyManager } = {};
-    const locals: anyObject_T<Arg> = {};
+    const locals: anyObject = {};
     const { localArgs, codeSnippet, handlePromise } = this;
 
     for (const key of Object.keys(localArgs)) {
-      let { value: localValue, valueGetter, defaultValueForKeyPath } = localArgs[key];
+      let {
+        value: localValue,
+        valueGetter,
+        defaultValueForKeyPath,
+      } = localArgs[key];
       if (valueGetter) localValue = valueGetter(callInstance);
 
-      const v: Arg = unasyncValue(
+      const v: anyValue = unasyncValue(
         callInstance,
         defaultValueForKeyPath,
         key,
         key in localOverrides ? localOverrides[key] : localValue,
-        value => {
+        (value) => {
           localOverrides[key] = value;
         }
       );
@@ -77,9 +81,13 @@ export class CodeSnippetCaller<T extends anyValue, Arg extends anyValue> {
       locals[key] = (localProxyMgrs[key] = new CodeSnippetObjectProxyManager(
         `${key}`,
         <anyObject>localValue,
-        <(keyPath: string, value: anyValue | Promise<anyValue>, then: (value: anyValue) => void) => anyValue>(
-          unasyncValue.bind(this, callInstance, defaultValueForKeyPath)
-        ),
+        <
+          (
+            keyPath: string,
+            value: anyValue | Promise<anyValue>,
+            then: (value: anyValue) => void
+          ) => anyValue
+        >unasyncValue.bind(this, callInstance, defaultValueForKeyPath),
         () => {
           if (haveRegisteredSideEffect) return;
           haveRegisteredSideEffect = true;
@@ -94,7 +102,9 @@ export class CodeSnippetCaller<T extends anyValue, Arg extends anyValue> {
         callInstance
       )).proxy;
     }
-    const result = codeSnippet.func(codeSnippet.maskGlobals.map(key => key in locals && locals[key]));
+    const result = codeSnippet.func(
+      codeSnippet.maskGlobals.map((key) => key in locals && locals[key])
+    );
 
     if (!needsRetry) {
       return { promise: Promise.resolve({ result, sideEffects }) };
@@ -110,13 +120,20 @@ export class CodeSnippetCaller<T extends anyValue, Arg extends anyValue> {
             return undefined;
           })
         );
-        if (!result) reject(new Error("handlePromise did not run all its jobs"));
-        resolve(result);
+        if (!result)
+          reject(new Error("handlePromise did not run all its jobs"));
+        else resolve(result);
       }),
     };
   }
 
-  async commit({ sideEffects }: { sideEffects: CodeSnippetSideEffect[] }): Promise<void> {
-    await this.handlePromise(Promise.all(sideEffects.map(sideEffect => sideEffect.run())));
+  async commit({
+    sideEffects,
+  }: {
+    sideEffects: CodeSnippetSideEffect[];
+  }): Promise<void> {
+    await this.handlePromise(
+      Promise.all(sideEffects.map((sideEffect) => sideEffect.run()))
+    );
   }
 }

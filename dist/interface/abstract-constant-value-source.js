@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.AbstractConstantValueSource = void 0;
 const abstract_value_source_1 = require("./abstract-value-source");
 class AbstractConstantValueSource extends abstract_value_source_1.AbstractValueSource {
     valueFromSubclass() {

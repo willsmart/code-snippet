@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.permissibleGlobals = void 0;
 exports.permissibleGlobals = new Set([
     'Object',
     'Function',

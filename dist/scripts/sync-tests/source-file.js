@@ -1,12 +1,18 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.SourceFile = void 0;
 const fs_1 = require("fs");
 const util_1 = require("util");
 const path_1 = require("path");
-const mkdir = util_1.promisify(fs_1.mkdir);
-const readFile = util_1.promisify(fs_1.readFile);
-const writeFile = util_1.promisify(fs_1.writeFile);
+const mkdir = (0, util_1.promisify)(fs_1.mkdir);
+const readFile = (0, util_1.promisify)(fs_1.readFile);
+const writeFile = (0, util_1.promisify)(fs_1.writeFile);
 class SourceFile {
+    filename;
+    testBody;
+    sourceBody;
+    sourceDir;
+    testsDir;
     constructor(subpath, sourceDir, testsDir) {
         this.sourceDir = sourceDir;
         this.testsDir = testsDir;
@@ -19,7 +25,7 @@ class SourceFile {
         return this.testsDir + this.filename;
     }
     async makeTestDir() {
-        await mkdir(path_1.dirname(this.testPath), { recursive: true });
+        await mkdir((0, path_1.dirname)(this.testPath), { recursive: true });
     }
     async writeTestFile(body) {
         this.makeTestDir();

@@ -17,4 +17,10 @@
  * displays is would be associated with a "ValueSink"
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-//# sourceMappingURL=sinks-and-sources.js.map
+exports.ValueSource_stateForOwner = void 0;
+var ValueSource_stateForOwner;
+(function (ValueSource_stateForOwner) {
+    ValueSource_stateForOwner[ValueSource_stateForOwner["hasNoSinks"] = 0] = "hasNoSinks";
+    ValueSource_stateForOwner[ValueSource_stateForOwner["hasSinks"] = 1] = "hasSinks";
+})(ValueSource_stateForOwner = exports.ValueSource_stateForOwner || (exports.ValueSource_stateForOwner = {}));
+//# sourceMappingURL=value-source.js.map
